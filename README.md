@@ -109,4 +109,16 @@ print(resp["code_url"])  # weixin://wxpay/bizpayurl?pr=...
 
 ---
 
-> Made with ❤️ for WeChat Pay developers. 5 块钱也能开心一整天。
+## ☕ 支持作者
+
+如果这个项目帮你省了时间，欢迎请我喝杯奶茶～
+
+<div align="center">
+  <img src="assets/wechat-qrcode.jpg" width="240" alt="微信赞赏码"/>
+  <br/>
+  <sub>微信扫码 · 5 块钱也能开心一整天 🧧</sub>
+</div>
+
+---
+
+> Made with ❤️ for WeChat Pay developers.
