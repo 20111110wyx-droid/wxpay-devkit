@@ -6,45 +6,37 @@ import unittest
 import json
 import os
 import tempfile
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
 from src.signer import Signer
 from src.decrypt import CallbackHandler
 
 
-# 测试用 RSA 私钥 (自签名，仅用于单元测试)
-TEST_PRIVATE_KEY = """-----BEGIN RSA PRIVATE KEY-----
-MIIEowIBAAKCAQEAv1PMFVrJX0WLx2L1MK4S7jlJC97T4VUEXpVxGfxCLH4KB2PC
-7UJtqHh4mFX1cLxJTC8gp9N1bMhLOyPnPbxNOFFKuKhI5N0uQLiLCLHJZpTDl9C3
-oJGsR1Gy8HmYUeZ0RlLfABHc5pH7ZPJRPtKXGNKNmGAtUWTBCE7Kb3MCHNIVCrwU
-4JUOIXgJ3YyjgUTkvHXjNWQZApSxIHmYPmPpNpQKgDJp8NlMmJ9YQ7RGdmOMkOzk
-VYJ8vRwQqkQqICGqYGzE4fNUm0rGfLCYH3ZZLZOXQNVpQEJklFKYYEjBNAGkLkOo
-5GkSGLQ2OJBsjItKPyVk6GGLlKZMHSskJXJuNQIDAQABAoIBADH8SIRr6ZFQQPIT
-KCqudPbb8ZCHLBilGQDEzK4AYAS2BvCvAMPPJSPFKqY4cSFCKHvXZshzXwlhQ5QV
-oVGAXwAf5lYLARJLzylGECYKrFJBNpGxkXoUFNfKFhNwdkYGgQKlNjQfIiYGpRR3
-GbDNgLrpGxGKLokQQjgMBnULKhxhFExEcFkMSIUOuJwTOAewOZEuOiXFSQBQIYLA
-pLKLGHQKjClMrGqoCQBKfBKQgLIbsGjSMBwlXPBHgiHqYGjGRiSOiZRZKvMHJkE6
-sULlXKJCRXDJBCWBEGwMNQTYGlaGqLFHFBiJBYCHKYVQFMMFpHMEqSQEKRgGKVQH
-MXGdJIECgYEA4ZvPyFjMRoKiFGYEpiJnkGvNzkFJCqHCBLsHQHGNuOaPXxBOKYHQ
-hqgYgKqNBGUKFGTFkHFlKJIFCGqQoKOBwPEIUykCNVBGNAgJFqQQDGKclhBGMZXD
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
------END RSA PRIVATE KEY-----"""
+def generate_test_key() -> str:
+    """生成测试用 RSA 私钥"""
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    pem = key.private_bytes(
+        encoding=Encoding.PEM,
+        format=PrivateFormat.PKCS8,
+        encryption_algorithm=NoEncryption(),
+    )
+    return pem.decode("utf-8")
 
 
 class TestSigner(unittest.TestCase):
     """签名器测试"""
 
+    @classmethod
+    def setUpClass(cls):
+        """生成一次测试密钥，所有 Signer 测试共用"""
+        cls._test_key = generate_test_key()
+
     def setUp(self):
-        # 写临时私钥文件
         self.tmp = tempfile.NamedTemporaryFile(
             mode="w", suffix=".pem", delete=False
         )
-        self.tmp.write(TEST_PRIVATE_KEY)
+        self.tmp.write(self._test_key)
         self.tmp.close()
-
         self.signer = Signer(
             mchid="1900000001",
             serial_no="TEST1234567890",
@@ -135,7 +127,7 @@ class TestCallbackHandler(unittest.TestCase):
             self.handler.decrypt(
                 headers={
                     "wechatpay-signature": "x",
-                    "wechatpay-timestamp": "1",  # 远早于当前时间
+                    "wechatpay-timestamp": "1",
                     "wechatpay-nonce": "x",
                 },
                 body=body,
